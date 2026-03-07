@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Main page</title>
+</head>
+<body bgcolor="#F5F5DC">
+<h2>Программа расчета калорийности списка продуктов</font></h2>
+<h3>*Выберите тип продукта из списка:</h3>
+
+
+<form method="post" action="/add_message">
+    <select name="text" method="GET" action="/"}>
+	{% for product in products %}
+	<option value="{{product}}">{{product}}</option>"
+    	{% endfor %}
+</select><br>
+    <h3>*Укажите количество грамм продукта</h3>
+    <input type="text" name="massa" placeholder="{{mes_massa}}" size="55"><br><br>
+    <button type="submit">Рассчитать калорийность и добавить в список</button>
+</form>
+
+
+
+
+<h3>Список выбранных продуктов:</h3>
+<form method="POST" action="/del_messages">
+    <button type="submit">Очистить список</button>
+</form><br>
+{% for message in messages %}
+<div>{{ message.text }}&nbsp;{{ message.massa }} грамм: <b>{{ message.kkal }} ККал.</b></div>
+{% endfor %}
+<h3>Сумма калорий в данном наборе продуктов {{summa}} Ккал</h3>
+
+
+
+
+
+</body>
+</html>
