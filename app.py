@@ -1,230 +1,173 @@
-from collections import namedtuple
 # (через Terminal окно)
     #  python.exe -m pip install --upgrade pip
     #  pip install Jinja2
     #  pip install Flask
     #  pip install requests
+    # наличие requirements.txt при выгрузке на хостинг
 from jinja2 import Template, Environment, FileSystemLoader
 from flask import Flask, render_template, redirect, url_for, request, session, app
 
 
-
-
 app = Flask(__name__)
+app.secret_key = 'ваш_очень_секретный_ключ'
 
-# функция определения наличия в заданном элементе str символа из списка
-def is_part_in_list(str_, words):
-    for word in words:
-        if word in str_:
-            return True
-    return False
-
-
-Message = namedtuple('Message', 'text massa kkal')
-messages = []
-summa_l = []
-s={"--выбирите продукт--":0}
+# Словарь продуктов (оставляем как константу, он общий)
 l0 = {
-'Молоко':60,
-'Кефир':53,
-'Творог':145,
-'Яйцо куриное':157,
-'Макароны':333,
-'Йогурт':68,
-'Мороженое пломбир':232,
-'Сметана':206,
-'Сыр твердый':344,
-'Скумбрия':191,
-'Щука':84,
-'Кальмар':100,
-'Икра красная':249,
-'Батон':262,
-'Крупа рисовая':333,
-'Мука':329,
-'Печенье':417,
-'Хлеб':201,
-'Сушки':339,
-'Сухари':399,
-'Фасоль':298,
-'Арахис':552,
-'Миндаль':609,
-'Фундук':653,
-'Кабачки':24,
-'Капуста белокочанная':28,
-'Капуста брокколи':34,
-'Капуста пекинская':16,
-'Картофель':77,
-'Морковь':35,
-'Огурец':14,
-'Помидор':24,
-'Редис':20,
-'Свекла':42,
-'Спаржа':21,
-'Тыква':22,
-'Чеснок':149,
-'Шпинат':23,
-'Абрикос':44,
-'Авокадо':160,
-'Ананас':52,
-'Апельсин':43,
-'Банан':96,
-'Виноград':72,
-'Гранат':72,
-'Грейпфрут':35,
-'Груша':47,
-'Ежевика':34,
-'Лимон':34,
-'Киви':47,
-'Мандарин':38,
-'Персик':45,
-'Яблоки':47,
-'Курага':32,
-'Чернослив':256,
-'Финики':292,
-'Грибы белые':34,
-'Грибы шампиньоны':27,
-'Сок апельсиновый':45,
-'Сок виноградный':70,
-'Сок морковный':56,
-'Масло подсолнечное':899,
-'Масло оливковое':898,
-'Майонез':629,
-'Колбаса сервелат':461,
-'Колбаски охотничьи':463
+    'Молоко': 60, 'Кефир': 53, 'Творог': 145, 'Яйцо куриное': 157, 'Макароны': 333, 'Йогурт': 68,
+    'Мороженое пломбир': 232, 'Сметана': 206, 'Сыр твердый': 344, 'Скумбрия': 191, 'Щука': 84,
+    'Кальмар': 100, 'Икра красная': 249, 'Батон': 262, 'Крупа рисовая': 333, 'Мука': 329,
+    'Печенье': 417, 'Хлеб': 201, 'Сушки': 339, 'Сухари': 399, 'Фасоль': 298, 'Арахис': 552,
+    'Миндаль': 609, 'Фундук': 653, 'Кабачки': 24, 'Капуста белокочанная': 28, 'Капуста брокколи': 34,
+    'Капуста пекинская': 16, 'Картофель': 77, 'Морковь': 35, 'Огурец': 14, 'Помидор': 24,
+    'Редис': 20, 'Свекла': 42, 'Спаржа': 21, 'Тыква': 22, 'Чеснок': 149, 'Шпинат': 23,
+    'Абрикос': 44, 'Авокадо': 160, 'Ананас': 52, 'Апельсин': 43, 'Банан': 96, 'Виноград': 72,
+    'Гранат': 72, 'Грейпфрут': 35, 'Груша': 47, 'Ежевика': 34, 'Лимон': 34, 'Киви': 47,
+    'Мандарин': 38, 'Персик': 45, 'Яблоки': 47, 'Курага': 32, 'Чернослив': 256, 'Финики': 292,
+    'Грибы белые': 34, 'Грибы шампиньоны': 27, 'Сок апельсиновый': 45, 'Сок виноградный': 70,
+    'Сок морковный': 56, 'Масло подсолнечное': 899, 'Масло оливковое': 898, 'Майонез': 629,
+    'Колбаса сервелат': 461, 'Колбаски охотничьи': 463
 }
+l_keys = ["--выбирите продукт--"] + list(l0.keys())
 
-l=s|l0
 
-l_keys = []
-for x in l:
-    l_keys.append(x)
+def is_part_in_list(str_, words):
+    return any(word in str_ for word in words)
 
-# главная страница - отправка списка в drop-down-menu
-@app.route('/', methods=['GET'])
-def dropdown():
-    return render_template('main.html', products=l_keys)
 
-# главная страница - отправка в html переменных для вывода в список подобранных продуктов
-@app.route('/main', methods=['GET'])
+@app.route('/')
+@app.route('/main')
 def main():
-    return render_template('main.html', messages=messages, summa = str(round(sum(summa_l), 2)), products=l_keys, mes_massa=mes_massa)
+    # Извлекаем данные из сессии (если их нет - подставляем пустые значения)
+    user_messages = session.get('user_messages', [])
+    mes_massa = session.get('mes_massa', "")
 
-# накопительное добавление списка продуктов
-json_added_messeges = {}
-count_mess = 0
+    # Считаем сумму калорий на лету из списка в сессии
+    total_kkal = round(sum(msg['kkal'] for msg in user_messages), 2)
+
+    return render_template('main.html',
+                           messages=user_messages,
+                           summa=total_kkal,
+                           products=l_keys,
+                           mes_massa=mes_massa,
+                           username=session.get('username'))
+
+
 @app.route('/add_message', methods=['POST'])
 def add_message():
-    global mes_massa
-    text = request.form['text']
+    text = request.form.get('text')
+    massa = request.form.get('massa', "")
+
+    # Инициализируем список сообщений в сессии
+    if 'user_messages' not in session:
+        session['user_messages'] = []
+
+    error_msg = ""
+
     if text == "--выбирите продукт--":
-        mes_massa = "вы не выбрали тип продукта"
-        redirect(url_for('main'))
+        error_msg = "вы не выбрали тип продукта"
     else:
-        massa = request.form['massa']
-        while massa or massa == "":
-            if massa == "":
-                mes_massa = "вы не выбрали вес продукта, введите вес в граммах + уточните продукт"
-            elif bool(massa.count("-")):
-                mes_massa = "вы ввели вес меньше 0, введите вес в граммах + уточните продукт"
-            elif massa == "0":
-                mes_massa = "вы ввели вес равный 0, введите вес в граммах + уточните продукт"
-            elif is_part_in_list(massa, [",","."]):
-                mes_massa = "вы ввели не целое количество грамм, введите вес в граммах + уточните продукт"
-            elif massa.isdigit() and int(massa) > 10000:
-                mes_massa = "ведрами есть нельзя), введите вес в граммах + уточните продукт"
-            elif massa.isdigit() and int(massa) <= 10000:
-                kkal = round(int(massa) / 100 * l0.get(text), 2)
-                messages.append(Message(text, massa, kkal))
-                summa_l.append(kkal)
-                mes_massa = ""
-                namedtuple_mes = namedtuple('_', ['text', 'massa', 'kkal'])(
-                    text,
-                    int(massa),
-                    kkal
-                )
-                json_added_mes = namedtuple_mes._asdict()
-                global count_mess
-                count_mess += 1
-                json_added_messeges[count_mess]=json_added_mes
-            else:
-                mes_massa = "вы ввели не число"
-            break
+        if massa == "":
+            error_msg = "вы не выбрали вес продукта"
+        elif "-" in massa:
+            error_msg = "вы ввели вес меньше 0"
+        elif massa == "0":
+            error_msg = "вы ввели вес равный 0"
+        elif is_part_in_list(massa, [",", "."]):
+            error_msg = "введите целое число грамм"
+        elif not massa.isdigit():
+            error_msg = "вы ввели не число"
+        elif int(massa) > 10000:
+            error_msg = "ведрами есть нельзя)"
+        else:
+            # УСПЕШНОЕ ДОБАВЛЕНИЕ
+            kkal = round(int(massa) / 100 * l0.get(text, 0), 2)
+
+            # Работаем с сессией (сохраняем как список словарей)
+            temp_list = session['user_messages']
+            temp_list.append({'text': text, 'massa': massa, 'kkal': kkal})
+            session['user_messages'] = temp_list
+            session.modified = True
+            error_msg = ""
+
+    session['mes_massa'] = error_msg
     return redirect(url_for('main'))
 
 
-# Очистка списка подобранных продуктов (кнопка в Web-интерфейсе)
+@app.route('/login', methods=['POST'])
+def login():
+    session['username'] = request.form.get('user_input')
+    # При логине можно сразу очистить старый список или оставить
+    return redirect(url_for('main'))
+
+
+@app.route('/logout')
+def logout():
+    session.clear()  # Полная очистка сессии
+    return redirect(url_for('main'))
+
+
 @app.route('/del_messages', methods=['POST'])
 def del_messages():
-    global messages
-    messages = []
-    global summa_l
-    summa_l = []
-    json_added_messeges.clear()
-    count = 0
+    session['user_messages'] = []
+    session['mes_massa'] = ""
     return redirect(url_for('main'))
 
 
 # JSON - Postman
 
-# очистка подобранного списка продуктов
+# 1. Очистка списка (API-запрос)
 @app.route('/del_messages_req', methods=['POST'])
 def del_messages_req():
-    global messages
-    messages = []
-    global summa_l
-    summa_l = []
-    json_added_messeges.clear()
-    count = 0
-    json_clear ={}
-    # json_clear['Список выбранных продуктов:'] = json_added_messeges
-    req_clear_text = {"Список обнулён!":True, 'Список выбранных продуктов': json_added_messeges}
-    return req_clear_text
+    # Очищаем только данные текущего пользователя в сессии
+    session.pop('user_messages', None)
+    session.pop('mes_massa', None)
+
+    # Возвращаем JSON-ответ
+    return {
+        "Список обнулён!": True,
+        "Список выбранных продуктов": []
+    }
 
 
-# обработка запроса на отпраку JSON с накопленнным списком продуктов через WEB-интерфейс
+# 2. Показать накопленный список (API-запрос)
 @app.route('/show_messages_req', methods=['POST'])
 def show_messages_reg():
-    summa = str(round(sum(summa_l), 2))
-    added_messages = {'Список выбранных продуктов': json_added_messeges, 'Сумма калорий в выбранных продуктах(ККал)': summa}
-    return added_messages
+    # Достаем список из сессии (если пусто — возвращаем [])
+    user_messages = session.get('user_messages', [])
+
+    # Считаем сумму калорий только для этого пользователя
+    total_kkal = round(sum(msg['kkal'] for msg in user_messages), 2)
+
+    return {
+        'Список выбранных продуктов': user_messages,
+        'Сумма калорий в выбранных продуктах(ККал)': str(total_kkal)
+    }
 
 
-# вывод списка продуктов
+# 3. Вывод справочника (не зависит от сессии, отдаем общий словарь)
 @app.route('/list', methods=['GET'])
-def list():
-    dict_food = {'Справочник каллорийности продуктов доступных для подбора': l0}
-    return  dict_food
+def list_food():
+    return {'Справочник калорийности продуктов': l0}
 
 
-# Вывод калорийности по выбранному типу продукта
-
-# перевод JSON в lowercase в отдельный JSON
-lowercase_l = {key.lower(): val for key, val in l0.items()}
-# обьединение json для отсутствия значимости регистра
-l_full=l0|lowercase_l
-# получение всех ключей l_full
-l_full_keys = []
-for x in l_full:
-    l_full_keys.append(x)
-
+# 4. Поиск калорийности (не зависит от сессии)
 @app.route('/search', methods=['GET'])
 def search():
-    food = request.args.get('food')
-    # проверяем, передается ли параметр 'food' в URL-адресе
-    if food and food != '':
-        if food.replace(" ","").isalpha() == False:
-            return 'Введите буквенное значение на русском языке!'
-        elif l_full_keys.count(food) == False:
-            return 'Данный тип продукта не найден в списке доступных к рассчету!'
-        else:
-            food_dict = {}
-            food_kkal = l_full.get(food)
-            food_dict[food] = food_kkal
-            return food_dict
-    elif food == '':
-        return 'Не выбран тип продукта в параметре "food", введите значение на русском языке!'
+    food = request.args.get('food', '').strip()
+
+    if not food:
+        return 'Вы не ввели в запросе параметр "food"!', 400
+
+    # Проверка на кириллицу (упрощенно)
+    if not any(c.isalpha() for c in food):
+        return 'Введите буквенное значение на русском языке!', 400
+
+    # Ищем в объединенном словаре (регистронезависимо)
+    food_lower = food.lower()
+    if food_lower in l_full:
+        return {food: l_full[food_lower]}
     else:
-        return 'Вы не ввели в запросе GET параметр типа продукта "food"!'
+        return 'Данный тип продукта не найден в списке!', 404
 
 if __name__ == '__main__':
     app.run(debug=True)
