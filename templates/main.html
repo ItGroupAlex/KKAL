@@ -6,22 +6,6 @@
 </head>
 <body bgcolor="#F5F5DC">
 
-{% if session.get('username') %}
-    <h1>Приветствуем, {{ session['username'] }}!</h1>
-    <a href="/logout">
-        <button type="submit">Выйти</button>
-    </a>
-{% else %}
-    <p1 style="text-align: right;">
-    <h2 style="color: red;">Введите своё имя для начала работы рассчёта</h2>
-    <form action="/login" method="post">
-        <input type="text" name="user_input" placeholder="Введите имя">
-        <button type="submit">Войти</button>
-    </form>
-{% endif %}
-</p1>
-<br><br><br>
-
 <p1 style="text-align: center;">
 <h1 >Программа расчета калорийности списка продуктов</font></h1>
     </p1>
