@@ -1,13 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 <head>
     <meta charset="UTF-8">
     <title>Main page</title>
 </head>
 <body bgcolor="#F5F5DC">
-<h2>Программа расчета калорийности списка продуктов</font></h2>
-<h3>*Выберите тип продукта из списка:</h3>
 
+{% if session.get('username') %}
+    <h1>Приветствуем, {{ session['username'] }}!</h1>
+    <a href="/logout">
+        <button type="submit">Выйти</button>
+    </a>
+{% else %}
+    <p1 style="text-align: right;">
+    <h2 style="color: red;">Введите своё имя для начала работы рассчёта</h2>
+    <form action="/login" method="post">
+        <input type="text" name="user_input" placeholder="Введите имя">
+        <button type="submit">Войти</button>
+    </form>
+{% endif %}
+</p1>
+<br><br><br>
+
+<p1 style="text-align: center;">
+<h1 >Программа расчета калорийности списка продуктов</font></h1>
+    </p1>
+<p1 style="text-align: left;">
+    <h3>*Выберите тип продукта из списка:</h3>
+    </p1>
 
 <form method="post" action="/add_message">
     <select name="text" method="GET" action="/"}>
@@ -19,22 +39,20 @@
     <input type="text" name="massa" placeholder="{{mes_massa}}" size="55"><br><br>
     <button type="submit">Рассчитать калорийность и добавить в список</button>
 </form>
+</p1>
+<br><br>
 
-
-
-
+<p1 style="text-align: center;">
 <h3>Список выбранных продуктов:</h3>
-<form method="POST" action="/del_messages">
-    <button type="submit">Очистить список</button>
-</form><br>
+<br>
 {% for message in messages %}
 <div>{{ message.text }}&nbsp;{{ message.massa }} грамм: <b>{{ message.kkal }} ККал.</b></div>
 {% endfor %}
 <h3>Сумма калорий в данном наборе продуктов {{summa}} Ккал</h3>
-
-
-
-
+<form method="POST" action="/del_messages">
+    <button type="submit">Очистить список</button>
+</form>
+</p1>
 
 </body>
 </html>
