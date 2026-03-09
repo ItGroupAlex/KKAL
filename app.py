@@ -169,25 +169,8 @@ def search():
     else:
         return 'Данный тип продукта не найден в списке!', 404
 
-@app.route('/search1', methods=['GET'])
-def search():
-    food = request.args.get('food')
-    # проверяем, передается ли параметр 'food' в URL-адресе
-    if food and food != '':
-        if food.replace(" ","").isalpha() == False:
-            return 'Введите буквенное значение на русском языке!'
-        elif l_full_keys.count(food) == False:
-            return 'Данный тип продукта не найден в списке доступных к рассчету!'
-        else:
-            food_dict = {}
-            food_kkal = l_full.get(food)
-            food_dict[food] = food_kkal
-            return food_dict
-    elif food == '':
-        return 'Не выбран тип продукта в параметре "food", введите значение на русском языке!'
-    else:
-        return 'Вы не ввели в запросе GET параметр типа продукта "food"!'
 
 if __name__ == '__main__':
     app.run(debug=True)
+
 
