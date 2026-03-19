@@ -5,13 +5,12 @@
     #  pip install requests
     # наличие requirements.txt при выгрузке на хостинг
 from jinja2 import Template, Environment, FileSystemLoader
-from flask import Flask, render_template, redirect, url_for, request, session, app
-
+from flask import Flask, render_template, redirect, url_for, request, session, jsonify
 
 app = Flask(__name__)
 app.secret_key = 'ваш_очень_секретный_ключ'
 
-# Словарь продуктов (оставляем как константу, он общий)
+# Словарь продуктов
 l0 = {
     'Молоко': 60, 'Кефир': 53, 'Творог': 145, 'Яйцо куриное': 157, 'Макароны': 333, 'Йогурт': 68,
     'Мороженое пломбир': 232, 'Сметана': 206, 'Сыр твердый': 344, 'Скумбрия': 191, 'Щука': 84,
@@ -27,22 +26,20 @@ l0 = {
     'Сок морковный': 56, 'Масло подсолнечное': 899, 'Масло оливковое': 898, 'Майонез': 629,
     'Колбаса сервелат': 461, 'Колбаски охотничьи': 463
 }
-l_keys = ["--выбирите продукт--"] + list(l0.keys())
 
+# Предварительно создаем словарь для поиска в нижнем регистре
+l0_lookup = {k.lower(): (k, v) for k, v in l0.items()}
+l_keys = ["--выбирите продукт--"] + list(l0.keys())
 
 def is_part_in_list(str_, words):
     return any(word in str_ for word in words)
 
-
 @app.route('/')
 @app.route('/main')
 def main():
-    # Извлекаем данные из сессии (если их нет - подставляем пустые значения)
     user_messages = session.get('user_messages', [])
     mes_massa = session.get('mes_massa', "")
-
-    # Считаем сумму калорий на лету из списка в сессии
-    total_kkal = round(sum(msg['kkal'] for msg in user_messages), 2)
+    total_kkal = round(sum(msg.get('kkal', 0) for msg in user_messages), 2)
 
     return render_template('main.html',
                            messages=user_messages,
@@ -51,66 +48,89 @@ def main():
                            mes_massa=mes_massa,
                            username=session.get('username'))
 
-
 @app.route('/add_message', methods=['POST'])
 def add_message():
     text = request.form.get('text')
-    massa = request.form.get('massa', "")
+    massa = request.form.get('massa', "").strip()
 
-    # Инициализируем список сообщений в сессии
     if 'user_messages' not in session:
         session['user_messages'] = []
 
     error_msg = ""
 
-    if text == "--выбирите продукт--":
+    if text == "--выбирите продукт--" or text not in l0:
         error_msg = "вы не выбрали тип продукта"
+    elif not massa:
+        error_msg = "вы не выбрали вес продукта"
+    elif "-" in massa:
+        error_msg = "вы ввели вес меньше 0"
+    elif massa == "0":
+        error_msg = "вы ввели вес равный 0"
+    elif is_part_in_list(massa, [",", "."]):
+        error_msg = "введите целое число грамм"
+    elif not massa.isdigit():
+        error_msg = "вы ввели не число"
+    elif int(massa) > 10000:
+        error_msg = "ведрами есть нельзя)"
     else:
-        if massa == "":
-            error_msg = "вы не выбрали вес продукта"
-        elif "-" in massa:
-            error_msg = "вы ввели вес меньше 0"
-        elif massa == "0":
-            error_msg = "вы ввели вес равный 0"
-        elif is_part_in_list(massa, [",", "."]):
-            error_msg = "введите целое число грамм"
-        elif not massa.isdigit():
-            error_msg = "вы ввели не число"
-        elif int(massa) > 10000:
-            error_msg = "ведрами есть нельзя)"
-        else:
-            # УСПЕШНОЕ ДОБАВЛЕНИЕ
-            kkal = round(int(massa) / 100 * l0.get(text, 0), 2)
-
-            # Работаем с сессией (сохраняем как список словарей)
-            temp_list = session['user_messages']
-            temp_list.append({'text': text, 'massa': massa, 'kkal': kkal})
-            session['user_messages'] = temp_list
-            session.modified = True
-            error_msg = ""
+        kkal = round(int(massa) / 100 * l0.get(text, 0), 2)
+        temp_list = session['user_messages']
+        temp_list.append({'text': text, 'massa': massa, 'kkal': kkal})
+        session['user_messages'] = temp_list
+        session.modified = True
+        error_msg = ""
 
     session['mes_massa'] = error_msg
     return redirect(url_for('main'))
 
-
 @app.route('/login', methods=['POST'])
 def login():
     session['username'] = request.form.get('user_input')
-    # При логине можно сразу очистить старый список или оставить
     return redirect(url_for('main'))
 
-
-@app.route('/logout')
+@app.route('/logout', methods=['GET', 'POST'])
 def logout():
-    session.clear()  # Полная очистка сессии
+    session.clear()
     return redirect(url_for('main'))
-
 
 @app.route('/del_messages', methods=['POST'])
 def del_messages():
     session['user_messages'] = []
     session['mes_massa'] = ""
     return redirect(url_for('main'))
+
+
+@app.route('/update_last', methods=['PUT'])
+def update_last():
+    # Получаем JSON данные из запроса (для PUT это стандарт)
+    data = request.get_json()
+    new_massa = data.get('new_massa', "").strip()
+
+
+    user_messages = session.get('user_messages', [])
+
+    if not user_messages:
+        return jsonify({"error": "Список пуст"}), 400
+
+    # Валидация веса
+    if not new_massa.isdigit() or int(new_massa) <= 0:
+        return jsonify({"error": "Введите положительное число"}), 400
+
+    # Обновляем данные последнего элемента
+    last_item = user_messages[-1]
+    product_name = last_item['text']
+
+    # Пересчитываем ккал (l0 — твой исходный словарь из начала кода)
+    new_kkal = round(int(new_massa) / 100 * l0.get(product_name, 0), 2)
+
+    last_item['massa'] = new_massa
+    last_item['kkal'] = new_kkal
+
+    session['user_messages'] = user_messages
+    session.modified = True
+
+    return jsonify({"success": True, "new_kkal": new_kkal}), 200
+
 
 
 # JSON - Postman
@@ -150,27 +170,40 @@ def list_food():
     return {'Справочник калорийности продуктов': l0}
 
 
-# 4. Поиск калорийности (не зависит от сессии)
+# 4. Поиск по справочнику
+# Создаем вспомогательный словарь: все ключи в нижнем регистре
+l0_lookup = {k.lower(): v for k, v in l0.items()}
+
 @app.route('/search', methods=['GET'])
 def search():
-    food = request.args.get('food', '').strip()
+    # Приводим ввод пользователя к нижнему регистру и убираем пробелы
+    food_input = request.args.get('food', '').lower().strip()
 
-    if not food:
-        return 'Вы не ввели в запросе параметр "food"!', 400
+    # Ищем в подготовленном словаре l0_lookup
+    if food_input in l0_lookup:
+        # Находим оригинальное название из основного словаря l0 для красоты ответа
+        # (ищем ключ, который в нижнем регистре совпадает с вводом)
+        original_key = next((k for k in l0.keys() if k.lower() == food_input), food_input)
+        return jsonify({original_key: l0_lookup[food_input]}), 200
 
-    # Проверка на кириллицу (упрощенно)
-    if not any(c.isalpha() for c in food):
-        return 'Введите буквенное значение на русском языке!', 400
+    return jsonify({"error": "Продукт не найден"}), 404
 
-    # Ищем в объединенном словаре (регистронезависимо)
-    food_lower = food.lower()
-    if food_lower in l_full:
-        return {food: l_full[food_lower]}
-    else:
-        return 'Данный тип продукта не найден в списке!', 404
+
+from flask import jsonify  # Добавь в импорты
+
+
+@app.route('/delete_last', methods=['DELETE'])
+def delete_last():
+    user_messages = session.get('user_messages', [])
+
+    if user_messages:
+        user_messages.pop()
+        session['user_messages'] = user_messages
+        session.modified = True
+        return jsonify({"status": "success", "remaining": len(user_messages)}), 200
+
+    return jsonify({"status": "error", "message": "List is empty"}), 400
 
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-
