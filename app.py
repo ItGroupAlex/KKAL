@@ -3,12 +3,20 @@
     #  pip install Jinja2
     #  pip install Flask
     #  pip install requests
+    #  pip install Flask-Session
     # наличие requirements.txt при выгрузке на хостинг
 from jinja2 import Template, Environment, FileSystemLoader
 from flask import Flask, render_template, redirect, url_for, request, session, jsonify
+from flask_session import Session
 
 app = Flask(__name__)
-app.secret_key = 'ваш_очень_секретный_ключ'
+app.config['SECRET_KEY'] = 'your_permanent_key_123'
+
+# Настройка серверных сессий
+app.config['SESSION_TYPE'] = 'filesystem'
+# Чтобы папка с сессиями создалась в корне проекта
+app.config['SESSION_FILE_DIR'] = './flask_session'
+Session(app)
 
 # Словарь продуктов
 l0 = {
