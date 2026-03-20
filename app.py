@@ -29,7 +29,7 @@ l0 = {
 
 # Предварительно создаем словарь для поиска в нижнем регистре
 l0_lookup = {k.lower(): (k, v) for k, v in l0.items()}
-l_keys = ["--выбирите продукт--"] + list(l0.keys())
+l_keys = list(l0.keys())
 
 def is_part_in_list(str_, words):
     return any(word in str_ for word in words)
@@ -48,40 +48,64 @@ def main():
                            mes_massa=mes_massa,
                            username=session.get('username'))
 
+
 @app.route('/add_message', methods=['POST'])
 def add_message():
     text = request.form.get('text')
     massa = request.form.get('massa', "").strip()
 
-    if 'user_messages' not in session:
-        session['user_messages'] = []
+    # Сохраняем ввод в сессию, чтобы он не сбросился в форме
+    session['current_text'] = text
+    session['current_massa'] = massa
 
     error_msg = ""
 
-    if text == "--выбирите продукт--" or text not in l0:
+    # 1. Проверка на выбор продукта
+    if not text or text == "" or text == "--выберите продукт--":
         error_msg = "вы не выбрали тип продукта"
+
+    # 2. Проверка на пустое поле
     elif not massa:
-        error_msg = "вы не выбрали вес продукта"
+        error_msg = "вы не ввели вес продукта"
+
+    # 3. ПРОВЕРКА НА ДРОБНОЕ ЧИСЛО (точка или запятая)
+    elif "." in massa or "," in massa:
+        error_msg = "введите целое число грамм (без точек и запятых)"
+
+    # 4. Проверка на отрицательное число (через минус)
     elif "-" in massa:
         error_msg = "вы ввели вес меньше 0"
-    elif massa == "0":
-        error_msg = "вы ввели вес равный 0"
-    elif is_part_in_list(massa, [",", "."]):
-        error_msg = "введите целое число грамм"
+
+    # 5. Проверка на буквы и спецсимволы
     elif not massa.isdigit():
         error_msg = "вы ввели не число"
+
+    # 6. Проверка на логические границы
+    elif int(massa) == 0:
+        error_msg = "вы ввели вес равный 0"
     elif int(massa) > 10000:
         error_msg = "ведрами есть нельзя)"
+
     else:
+        # Если все проверки пройдены — УСПЕХ
         kkal = round(int(massa) / 100 * l0.get(text, 0), 2)
-        temp_list = session['user_messages']
+
+        temp_list = session.get('user_messages', [])
         temp_list.append({'text': text, 'massa': massa, 'kkal': kkal})
         session['user_messages'] = temp_list
-        session.modified = True
-        error_msg = ""
 
+        # Очищаем временный ввод, так как данные успешно добавлены
+        session.pop('current_text', None)
+        session.pop('current_massa', None)
+        session['mes_massa'] = ""
+        session.modified = True
+        return redirect(url_for('main'))
+
+    # Если дошли сюда — значит есть ошибка
     session['mes_massa'] = error_msg
+    session.modified = True
     return redirect(url_for('main'))
+
 
 @app.route('/login', methods=['POST'])
 def login():
