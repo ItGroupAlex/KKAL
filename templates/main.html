@@ -151,17 +151,27 @@
 
     <form method="post" action="/add_message">
         <label class="section-title">Продукт</label>
-        <select name="text">
+        <!-- Добавили id и onchange -->
+        <select name="text" id="product-select" onchange="toggleMassa()">
+            <option value="" disabled {% if not session.get('current_text') %}selected{% endif %}>Выберите продукт...</option>
             {% for product in products %}
-                <option value="{{product}}">{{product}}</option>
+                <option value="{{product}}" {% if session.get('current_text') == product %}selected{% endif %}>
+                    {{product}}
+                </option>
             {% endfor %}
         </select>
 
-        <label class="section-title">Вес (грамм)</label>
-        <input type="text" name="massa" placeholder="Введите вес..." autocomplete="off">
-        {% if mes_massa %}<div class="error-text">{{ mes_massa }}</div>{% endif %}
+        <!-- Контейнер, который будет скрываться -->
+        <div id="massa-container" style="display: none;">
+            <label class="section-title">Вес (грамм)</label>
+            <input type="text" name="massa" value="{{ session.get('current_massa', '') }}" placeholder="Введите вес..." autocomplete="off">
 
-        <button type="submit" class="btn btn-add">Добавить расчет</button>
+            {% if session.get('mes_massa') %}
+                <div class="error-text">{{ session.get('mes_massa') }}</div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-add">Добавить расчет</button>
+        </div>
     </form>
 
     <div class="product-list">
@@ -195,6 +205,16 @@
 </div>
 
 <script>
+    function toggleMassa() {
+        const select = document.getElementById('product-select');
+        const container = document.getElementById('massa-container');
+        // Если значение не пустое (продукт выбран), показываем поле массы
+        container.style.display = (select.value && select.value !== "") ? 'block' : 'none';
+    }
+
+    // Проверяем состояние при загрузке страницы (чтобы после ошибки поле не скрылось)
+    window.onload = toggleMassa;
+
     function sendPutRequest() {
         const val = document.getElementById('put-massa').value;
         if(!val) return alert("Введите вес");
@@ -211,6 +231,41 @@
             .then(res => res.ok ? window.location.reload() : alert("Пусто"));
         }
     }
+    // Функция для сброса формы через 5 секунд после ошибки
+// Функция для сброса формы через 5 секунд после ошибки
+function resetAfterError() {
+    const errorBlock = document.querySelector('.error-text');
+    const select = document.getElementById('product-select');
+    const container = document.getElementById('massa-container');
+    const massaInput = document.querySelector('input[name="massa"]');
+
+    // Если на странице есть ошибка
+    if (errorBlock) {
+        let timer = setTimeout(checkAndReset, 5000);
+
+        function checkAndReset() {
+            // Проверяем: если курсор СЕЙЧАС в поле ввода, откладываем сброс
+            if (document.activeElement === massaInput) {
+                // Ждем еще 2 секунды и проверяем снова
+                timer = setTimeout(checkAndReset, 2000);
+            } else {
+                // Если курсора нет — сбрасываем всё
+                select.selectedIndex = 0;
+                container.style.display = 'none';
+                if (massaInput) massaInput.value = '';
+                errorBlock.style.display = 'none';
+            }
+        }
+    }
+}
+
+// Обновите вашу функцию загрузки страницы
+window.onload = function() {
+    if (typeof toggleMassa === "function") toggleMassa();
+    resetAfterError();
+};
+
+
 </script>
 
 </body>
