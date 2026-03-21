@@ -182,7 +182,7 @@ def del_messages_req():
 
 
 # 2. Показать накопленный список (API-запрос)
-@app.route('/show_messages_req', methods=['POST'])
+@app.route('/show_messages_req', methods=['GET'])
 def show_messages_reg():
     # Достаем список из сессии (если пусто — возвращаем [])
     user_messages = session.get('user_messages', [])
