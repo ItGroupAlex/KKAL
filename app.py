@@ -125,7 +125,7 @@ def logout():
     session.clear()
     return redirect(url_for('main'))
 
-@app.route('/del_messages', methods=['POST'])
+@app.route('/del_messages', methods=['GET'])
 def del_messages():
     session['user_messages'] = []
     session['mes_massa'] = ""
@@ -165,23 +165,8 @@ def update_last():
 
 
 
-# JSON - Postman
 
-# 1. Очистка списка (API-запрос)
-@app.route('/del_messages_req', methods=['POST'])
-def del_messages_req():
-    # Очищаем только данные текущего пользователя в сессии
-    session.pop('user_messages', None)
-    session.pop('mes_massa', None)
-
-    # Возвращаем JSON-ответ
-    return {
-        "Список обнулён!": True,
-        "Список выбранных продуктов": []
-    }
-
-
-# 2. Показать накопленный список (API-запрос)
+#Показать накопленный список (API-запрос)
 @app.route('/show_messages_req', methods=['GET'])
 def show_messages_reg():
     # Достаем список из сессии (если пусто — возвращаем [])
@@ -196,14 +181,14 @@ def show_messages_reg():
     }
 
 
-# 3. Вывод справочника (не зависит от сессии, отдаем общий словарь)
+# Вывод справочника (не зависит от сессии, отдаем общий словарь)
 @app.route('/list', methods=['GET'])
 def list_food():
     return {'Справочник калорийности продуктов': l0}
 
 
-# 4. Поиск по справочнику
-# Создаем вспомогательный словарь: все ключи в нижнем регистре
+# Поиск по справочнику
+# Создаём вспомогательный словарь: все ключи в нижнем регистре
 l0_lookup = {k.lower(): v for k, v in l0.items()}
 
 @app.route('/search', methods=['GET'])
